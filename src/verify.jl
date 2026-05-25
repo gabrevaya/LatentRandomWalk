@@ -87,15 +87,23 @@ end
 
 Sample word pairs with `X[w, w'] ≥ x_floor` from the upper triangle of `X`,
 return the empirical PMI (computed from windowed co-occurrence counts) and
-the model's prediction `⟨v_w, v_w'⟩ / d`. Corollary 2.3 predicts a linear
-relation with slope 1 plus a constant `γ = log(q(q−1)/2)` from the window
-size.
+the model's prediction `⟨v_w, v_w'⟩`. Corollary 2.3 (in SN units) predicts
+a linear relation with slope 1 and intercept `γ = log(q(q−1)/2)` from the
+window size — `γ = log 45 ≈ 3.81` for the default `q = 10`.
+
+**SN vs model units.** Thm 2.2 in the paper writes `PMI ≈ ⟨v̂_w, v̂_w'⟩/d`
+in *model units* where `‖v̂‖ = O(√d)`. The SN objective fits a rescaled
+`v_SN = v̂/√(2d)` (so the `1/(2d)` factor of Thm 2.2's pair form is absorbed
+into the squared-norm term), and substituting gives `PMI ≈ 2⟨v_SN, v_SN'⟩`.
+In practice — because the single-word law of Thm 2.2 is not perfectly
+satisfied by the SN solution — the factor of 2 is partly washed out and the
+empirical slope sits closer to 1, matching the paper's heuristic eq. 1.1.
+We follow eq. 1.1 here: the *predicted* relation is `⟨v_w, v_w'⟩ ≈ PMI(w, w')`.
 """
 function pmi_scatter(emb::Embeddings{T}, X::SparseMatrixCSC{<:AbstractFloat, <:Integer};
                      n_samples::Integer = 50_000,
                      x_floor::Real = 10,
                      rng::AbstractRNG = MersenneTwister(0)) where T<:AbstractFloat
-    d = size(emb.V, 1)
     row_sums = vec(sum(X; dims = 1))
     total = sum(row_sums)
     log_total = log(total)
@@ -115,7 +123,7 @@ function pmi_scatter(emb::Embeddings{T}, X::SparseMatrixCSC{<:AbstractFloat, <:I
         w′ = Int(colJ[idx])
         xij = Float64(vals[idx])
         pmi_emp[i]  = log(xij) + log_total - log(row_sums[w]) - log(row_sums[w′])
-        pmi_pred[i] = dot(@view(V[:, w]), @view(V[:, w′])) / d
+        pmi_pred[i] = dot(@view(V[:, w]), @view(V[:, w′]))
     end
 
     return (pmi_emp = pmi_emp, pmi_pred = pmi_pred,

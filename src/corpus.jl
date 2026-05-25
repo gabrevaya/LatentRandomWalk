@@ -67,7 +67,6 @@ frequency filtering; the option matters for other corpora).
 """
 function tokenize(tokens, vocab::Vocabulary)
     out = Int32[]
-    sizehint!(out, 17_000_000)  # ~ text8 size; cheap if smaller
     word2id = vocab.word2id
     for tok in tokens
         id = get(word2id, tok, Int32(0))

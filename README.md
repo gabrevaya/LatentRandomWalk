@@ -16,7 +16,8 @@ portfolio piece for clean, type-stable, performant Julia.
 4. **Empirically verifies the paper's predictions** via five diagnostics
    (D.1–D.6 below); each emits a JLD2 record and a Makie figure.
 5. **Optionally** reformulates the discourse walk as a continuous-time
-   Itô SDE on `S^{d-1}` and integrates it with `StochasticDiffEq.jl`.
+   Stratonovich SDE on `S^{d-1}` and integrates it with a projected
+   Euler–Maruyama scheme (tangent-space increment + renormalisation).
 
 ## Quick start
 
@@ -46,7 +47,7 @@ five diagnostics are:
 | D.1 | Partition function `Z_c` concentrates           | Lemma 2.1 / Fig. 1a   | Z_c clustered in [0.9, 1.1] · mean Z |
 | D.2 | `‖v_w‖²` linear in `log p(w)`                   | Theorem 2.2           | Pearson r ≈ 0.75    |
 | D.3 | Singular values of `V` are random-matrix-like   | Theorem 4.1           | min σ / RMS σ ≈ 1/3 |
-| D.4 | `PMI(w, w') ≈ ⟨v_w, v_w'⟩ / d`                  | Corollary 2.3 (paper's headline eq. 1.1) | linear, slope ≈ 1   |
+| D.4 | `PMI(w, w') ≈ ⟨v_w, v_w'⟩`                      | Corollary 2.3 (paper's headline eq. 1.1) | slope ≈ 1, intercept ≈ γ = log(q(q−1)/2) ≈ 3.81 |
 | D.5 | Google analogy testbed                          | §5.2                  | ~35–50 % on text8   |
 | D.6 | `v_a − v_b` aligns with a single direction      | §5.3 / RELATIONS=LINES | mean cos(u₁) ≫ mean cos(u₂) |
 
@@ -106,10 +107,23 @@ after the upfront `randperm`. AdaGrad is *not* delegated to
 access pattern, which a generic library cannot exploit — see
 [the discussion in `implementation-plan.md`](../implementation-plan.md).
 
+**SN units vs model units.** Theorem 2.2 of the paper is written in vectors
+`v̂` of typical norm `O(√d)` and predicts
+`log p(w, w') ≈ ‖v̂_w + v̂_w'‖² / (2 d) − 2 log Z`. The SN objective drops
+the `1/(2 d)` factor and fits the rescaled `v_SN = v̂ / √(2 d)` — so what
+the SN solver returns has norms of order `√(log X)` (compare D.2). The
+paper's headline equation 1.1, `⟨v_w, v_w'⟩ ≈ PMI(w, w')`, is the
+*SN-units* form of Theorem 2.2's `⟨v̂_w, v̂_w'⟩ / d ≈ PMI`: the factor of
+`d` is absorbed by the rescaling. That's why D.4's reference line is
+`y = x + γ` (slope 1, intercept `γ = log(q(q−1)/2) ≈ 3.81` for the
+window-size constant of Corollary 2.3), not `y = x/d`.
+
 ### Performance choices
 
 - **Float32 throughout.** Saves half the memory, halves cache pressure,
-  precision is irrelevant for embeddings.
+  precision is irrelevant for embeddings. (Note: `svdvals(V)` in D.3
+  promotes to Float64 internally inside LAPACK — the trained vectors
+  themselves remain Float32 everywhere else.)
 - **Symmetric upper-triangle storage** during training (each unique pair
   visited once).
 - **BLAS-vectorised verification.** D.1 is a series of GEMVs; D.5 is one
@@ -146,8 +160,11 @@ continuous-time process.
   and that's what we use.
 - The bias scalar `C` absorbs `−2 log Z`; we don't try to recover `Z`
   separately.
-- Naive Euler-Maruyama drifts off `S^{d-1}` over time — we renormalise
-  after each saved point.
+- The Stratonovich SDE is integrated with a projected Euler step (tangent
+  increment then renormalise), not a generic Euler-Maruyama solver. The
+  ambient-space Itô form carries a stiff `(d−1)/2` drift that would force
+  a tiny timestep at `d = 300`; the projected scheme avoids it and keeps
+  `‖c_t‖ = 1` to floating-point precision at every step.
 - The Google testbed contains some questions whose answers aren't in the
   text8 vocabulary; we skip those and report coverage.
 

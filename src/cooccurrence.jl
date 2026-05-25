@@ -1,7 +1,10 @@
 using OhMyThreads: tmapreduce, chunks
 using SparseArrays: SparseMatrixCSC, sparse
 
-const PairDict = Dict{Tuple{Int32, Int32}, Int32}
+# `Int` value type so the counter doesn't risk silent overflow on corpora
+# larger than text8 (Int32 saturates at ~2.1e9). `_expand_symmetric` still
+# materialises a `Float32` sparse matrix, so the public output is unchanged.
+const PairDict = Dict{Tuple{Int32, Int32}, Int}
 
 # Counts unordered pairs (i, j) with i < j whose token-stream positions lie in
 # `range × (range + window)`. Each unordered pair is therefore counted exactly
@@ -16,7 +19,7 @@ function _count_in_chunk(tokens::Vector{Int32}, range, window::Integer, N::Integ
             wj = tokens[j]
             wi == wj && continue
             key = wi < wj ? (wi, wj) : (wj, wi)
-            counts[key] = get(counts, key, Int32(0)) + Int32(1)
+            counts[key] = get(counts, key, 0) + 1
         end
     end
     return counts

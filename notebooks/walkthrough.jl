@@ -69,15 +69,17 @@ $$\Pr[w \mid c_t] \propto \exp\langle v_w, c_t\rangle.$$
 After integrating out the latent prior (Lemma 2.1, "self-normalisation"),
 the joint co-occurrence probability has a closed form
 
-$$\log p(w, w') \;\approx\; \frac{\lVert v_w + v_{w'}\rVert^2}{2d} - 2\log Z + \varepsilon$$
+$$\log p(w, w') \;\approx\; \frac{\lVert \hat v_w + \hat v_{w'}\rVert^2}{2d} - 2\log Z + \varepsilon$$
 
-— Theorem 2.2. Subtracting the two single-word equations gives the **headline
-prediction**
+— Theorem 2.2, in model-unit vectors $\hat v$ of typical norm $\sqrt{d}$.
+The SN objective is written for rescaled vectors $v = \hat v / \sqrt{2d}$,
+absorbing the $1/(2d)$ factor. Subtracting the two single-word equations
+in SN units gives the **headline prediction**
 
-$$\boxed{\;\mathrm{PMI}(w, w') \;\approx\; \frac{\langle v_w, v_{w'}\rangle}{d}\;}$$
+$$\boxed{\;\mathrm{PMI}(w, w') \;\approx\; \langle v_w, v_{w'}\rangle\;}$$
 
-(eq. 1.1 / Corollary 2.3). The whole training algorithm is just a least-squares
-fit to the pair form — no other tricks.
+(eq. 1.1 / Corollary 2.3, *slope 1, no division by d*). The whole training
+algorithm is just a least-squares fit to the pair form — no other tricks.
 """
 
 # ╔═╡ 11111111-0000-0000-0000-000000000006
@@ -143,12 +145,13 @@ end
 
 # ╔═╡ 11111111-0000-0000-0000-00000000000c
 md"""
-## D.4  PMI ≈ ⟨v_w, v_w'⟩ / d  (Corollary 2.3 — the headline)
+## D.4  PMI ≈ ⟨v_w, v_w'⟩  (Corollary 2.3 — the headline)
 
-This is the test of the model's headline equation. The SN training does
-*not* fit PMI directly — it fits the *pair* form of Theorem 2.2 — so the
-agreement here, combined with D.2, is genuine evidence that the model is
-right about both the pair and single-word laws simultaneously.
+This is the test of the model's headline equation in SN units (slope 1,
+no division by $d$). The SN training does *not* fit PMI directly — it
+fits the *pair* form of Theorem 2.2 — so the agreement here, combined
+with D.2, is genuine evidence that the model is right about both the pair
+and single-word laws simultaneously.
 """
 
 # ╔═╡ 11111111-0000-0000-0000-00000000000d
@@ -160,7 +163,7 @@ let pmi = ver["pmi_scatter"]
     fig = Figure(size = (640, 480))
     ax  = Axis(fig[1, 1],
                title = @sprintf("Pearson r = %.3f   slope = %.2f", pmi.correlation, m),
-               xlabel = "⟨v_w, v_w'⟩ / d   (model)",
+               xlabel = "⟨v_w, v_w'⟩   (model, SN units)",
                ylabel = "PMI(w, w')   (empirical)")
     scatter!(ax, pmi.pmi_pred, pmi.pmi_emp; markersize = 3, color = (:darkorange, 0.3))
     xs = collect(extrema(pmi.pmi_pred))
@@ -183,13 +186,19 @@ produced by `scripts/05_analogies.jl` and `scripts/04_verify.jl` and live in
 md"""
 ## The continuous-time picture (stretch)
 
-`LatentRandomWalk.SDE.simulate(d)` integrates the corresponding Itô SDE
+`LatentRandomWalk.SDE.simulate(d)` integrates the **Stratonovich** SDE
 
-$$dc_t = -\tfrac{d-1}{2}\, c_t\, dt + (I - c_t c_t^\top)\, dW_t$$
+$$dc_t = (I - c_t c_t^\top) \circ dW_t$$
 
-with `StochasticDiffEq.EM()`. `scripts/06_sde_demo.jl` produces a plot of
-$Z_c$ along the trajectory, demonstrating that Lemma 2.1's concentration
-holds *in continuous time too*.
+via a *projected Euler–Maruyama* step: draw a Gaussian increment, project
+onto the tangent space of $c_t$, then renormalise. This keeps $c_t$ on
+$S^{d-1}$ exactly at every step and avoids the stiff $(d-1)/2$ Itô drift
+that would appear in the ambient-space formulation (and would force a much
+smaller timestep at $d = 300$).
+
+`scripts/06_sde_demo.jl` produces a plot of $Z_c$ along the trajectory,
+demonstrating that Lemma 2.1's concentration holds *in continuous time
+too* (empirically $\sigma_{Z}/\bar Z < 0.10$ at $d = 300$).
 
 This connects the paper to latent-SDE / state-space-model work and is the
 original contribution of this prototype (small as it is).
