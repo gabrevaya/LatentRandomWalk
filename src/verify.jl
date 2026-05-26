@@ -135,10 +135,14 @@ end
 """
     relations_lines(emb, analogies; lowercase=true)
 
-For each relation in `analogies`, build `M = [v_a − v_b for (a, b) in pairs]`,
-take its top-2 singular vectors, and report the mean and std of the (signed)
-cosines of each column of `M` against each singular vector. The first
-singular vector is sign-oriented so its mean cosine is non-negative.
+For each relation, build `M = [v_a − v_b for (a, b) pairs]` (a `d × m`
+matrix), compute its top-2 left singular vectors `u₁, u₂`, and report
+the mean and standard deviation of `cos(v_a − v_b, u_k)` for `k = 1, 2`
+over the pairs in that relation. The paper's RELATIONS=LINES prediction
+is that the mean cosine against `u₁` is large and against `u₂` is near
+zero — i.e. the relation lives along a single direction, not a
+higher-dimensional subspace. `u₁` is sign-oriented so its mean cosine
+is non-negative.
 """
 function relations_lines(emb::Embeddings{T}, analogies::Vector{Analogy};
                          lowercase::Bool = true,

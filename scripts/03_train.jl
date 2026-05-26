@@ -4,6 +4,8 @@ include(joinpath(@__DIR__, "_setup.jl"))
 using LatentRandomWalk
 using JLD2: jldsave, jldopen
 using SparseArrays: nnz
+using CairoMakie
+using Printf: @sprintf
 
 const VOCAB_PATH   = joinpath(PROC_DIR, "vocab.jld2")
 const COOC_PATH    = joinpath(PROC_DIR, "cooccurrence.jld2")
@@ -31,3 +33,14 @@ emb, losses = @phase "train" train(X, vocab, config)
 jldsave(VECTORS_PATH; embeddings = emb, config)
 jldsave(LOSSES_PATH;  losses)
 @info "Wrote $VECTORS_PATH and $LOSSES_PATH"
+
+fig = Figure(size = (700, 420))
+ax  = Axis(fig[1, 1],
+           title  = @sprintf("SN training loss  (d = %d, epochs = %d, final = %.3e)",
+                             DIM, EPOCHS, losses[end]),
+           xlabel = "epoch",
+           ylabel = "weighted MSE",
+           yscale = log10)
+lines!(ax, 1:length(losses), losses; color = :steelblue, linewidth = 2)
+save(joinpath(FIGURES_DIR, "C_training_loss.pdf"), fig)
+@info "Wrote figures/C_training_loss.pdf"

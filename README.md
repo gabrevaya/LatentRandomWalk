@@ -49,7 +49,7 @@ five diagnostics are:
 | D.3 | Singular values of `V` are random-matrix-like   | Theorem 4.1           | min σ / RMS σ ≈ 1/3 |
 | D.4 | `PMI(w, w') ≈ ⟨v_w, v_w'⟩`                      | Corollary 2.3 (paper's headline eq. 1.1) | slope ≈ 1, intercept ≈ γ = log(q(q−1)/2) ≈ 3.81 |
 | D.5 | Google analogy testbed                          | §5.2                  | ~35–50 % on text8   |
-| D.6 | `v_a − v_b` aligns with a single direction      | §5.3 / RELATIONS=LINES | mean cos(u₁) ≫ mean cos(u₂) |
+| D.6 | `v_a − v_b` aligns with a single direction      | §5.3 / RELATIONS=LINES | mean cos(v_a − v_b, u₁) ≫ mean cos(v_a − v_b, u₂) |
 
 All five run in well under a minute against trained `text8` vectors. They
 constitute the central slides of the journal-club talk.

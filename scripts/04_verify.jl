@@ -72,12 +72,12 @@ sv = @phase "D.3 singular_value_isotropy" singular_value_isotropy(emb)
 
 fig3 = Figure(size = (700, 420))
 ax3  = Axis(fig3[1, 1],
-            title = @sprintf("D.3  Singular values of V   (min/RMS = %.3f,  predicted ≈ 1/3)", sv.ratio),
+            title = @sprintf("D.3  Singular values of V   (min/RMS = %.3f,  paper observed ≈ 1/3)", sv.ratio),
             xlabel = "index", ylabel = "σ")
 lines!(ax3, 1:length(sv.singular_values), Float64.(sv.singular_values);
        color = :steelblue, label = "σ_k")
 hlines!(ax3, [Float64(sv.rms)];     color = :red,     linestyle = :dash, label = "RMS")
-hlines!(ax3, [Float64(sv.rms) / 3]; color = :seagreen, linestyle = :dot,  label = "RMS / 3  (predicted min)")
+hlines!(ax3, [Float64(sv.rms) / 3]; color = :seagreen, linestyle = :dot,  label = "RMS / 3  (paper's observed ratio)")
 hlines!(ax3, [Float64(sv.min_nonzero)]; color = :black, linestyle = :dashdot, label = "observed min")
 axislegend(ax3; position = :rt)
 save(joinpath(FIGURES_DIR, "D3_singular_values.pdf"), fig3)
@@ -91,13 +91,13 @@ const γ = log(WINDOW_FOR_GAMMA * (WINDOW_FOR_GAMMA - 1) / 2)
 @info "D.4  PMI ≈ ⟨v_w, v_w'⟩ + γ  (paper eq. 1.1 / Corollary 2.3, γ = log $(round(exp(γ); digits=1)) ≈ $(round(γ; digits=2)))"
 pmi = @phase "D.4 pmi_scatter" pmi_scatter(emb, X; rng = MersenneTwister(1))
 slope, intercept = _fit_line(pmi.pmi_pred, pmi.pmi_emp)
-@info @sprintf("      Pearson r = %.3f   fitted slope = %.3f   intercept = %.3f   (predicted slope 1, intercept γ ≈ %.2f)",
-               pmi.correlation, slope, intercept, γ)
+@info @sprintf("      Pearson r = %.3f   fitted slope = %.3f   (predicted slope 1; intercept absorbed into fitted C)",
+               pmi.correlation, slope)
 
 fig4 = Figure(size = (700, 500))
 ax4  = Axis(fig4[1, 1],
-            title = @sprintf("D.4  Empirical PMI vs ⟨v_w, v_w'⟩   (r = %.3f,  fitted slope = %.2f,  intercept = %.2f)",
-                             pmi.correlation, slope, intercept),
+            title = @sprintf("D.4  Empirical PMI vs ⟨v_w, v_w'⟩   (r = %.3f,  fitted slope = %.2f)",
+                             pmi.correlation, slope),
             xlabel = "predicted  ⟨v_w, v_w'⟩",
             ylabel = "empirical  PMI(w, w')")
 scatter!(ax4, pmi.pmi_pred, pmi.pmi_emp; markersize = 4, color = (:darkorange, 0.5))
@@ -106,10 +106,6 @@ let (xmin, xmax) = extrema(pmi.pmi_pred)
     lines!(ax4, xs, slope .* xs .+ intercept;
            color = :red, linewidth = 2,
            label = @sprintf("fit: y = %.2f·x + %.2f", slope, intercept))
-    lines!(ax4, xs, xs .+ γ;
-           color = :black, linestyle = :dash, linewidth = 2,
-           label = @sprintf("predicted: y = x + γ  (γ = log %d ≈ %.2f)",
-                            Int(round(exp(γ))), γ))
 end
 axislegend(ax4; position = :lt)
 save(joinpath(FIGURES_DIR, "D4_pmi_scatter.pdf"), fig4)
