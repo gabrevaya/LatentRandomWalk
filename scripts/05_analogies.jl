@@ -40,6 +40,6 @@ ax  = Axis(fig[1, 1],
            xlabel = "accuracy", yticks = (1:length(rels), rels), xticks = 0:0.1:1.0)
 barplot!(ax, 1:length(rels), accs; direction = :x, color = :seagreen)
 vlines!(ax, [result.overall]; color = :red, linestyle = :dash, label = "overall")
-axislegend(ax; position = :rb)
+axislegend(ax; position = :rt)
 save(joinpath(FIGURES_DIR, "D5_analogy_accuracy.pdf"), fig)
 @info "Wrote figures/D5_analogy_accuracy.pdf"
